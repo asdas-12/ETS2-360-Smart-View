@@ -1,13 +1,18 @@
 # ETS2 360 Smart View
 
-Development repository for the ETS2 360 Smart View companion application and telemetry bridge.
+A Windows companion overlay and SCS Telemetry SDK plugin for Euro Truck Simulator 2.
 
-## Current milestone
-The first bridge reads truck speed, engine RPM and gear from the SCS Telemetry SDK and writes:
-`Documents/Euro Truck Simulator 2/360smartview_telemetry.json`
+## Current build 1.2
+- Reads live speed, engine RPM, signed gear, pause state and left/right indicator state.
+- The companion overlay automatically selects the corresponding FRONT / LEFT / RIGHT / REAR preview from telemetry.
+- Reverse detection uses negative SCS gear values; indicator states use the SCS logical blinker channels.
+- Movable/resizable overlay with saved window geometry and the locked Scania layout.
 
-## Build
-GitHub Actions downloads the official SCS Telemetry SDK 1.16 archive during the Windows x64 build, extracts its headers, compiles the plugin, and publishes the DLL as a workflow artifact.
+## Install
+1. Install `smartview_telemetry.dll` into `Euro Truck Simulator 2/bin/win_x64/plugins`.
+2. Launch ETS2 and enter a profile.
+3. Run `RUN_SMART_VIEW.bat` from the companion app folder.
+4. The plugin writes `Documents/Euro Truck Simulator 2/360smartview_telemetry.json`.
 
-## Scope and limitations
-Telemetry provides vehicle state; it does not provide rendered camera feeds or obstacle distances. Those capabilities need a separate investigation and implementation. The initial bridge is not yet compiled or runtime-tested in ETS2 1.62.
+## Camera limitation
+The right-side camera panel currently shows a labelled preview, not an independent rendered ETS2 camera feed. The SCS telemetry SDK supplies vehicle state, not rendered images or obstacle distances. SPF camera control can switch the game's active camera, but that is not the same as rendering simultaneous independent camera feeds. Real multi-view rendering and object-distance alerts remain separate development work and are not claimed as complete.
