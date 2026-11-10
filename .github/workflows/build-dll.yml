@@ -18,6 +18,8 @@ jobs:
           if (!(Test-Path 'sdk/include/scssdk_telemetry.h')) {
             throw 'SCS SDK 1.16 headers were not found after extraction.'
           }
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
       - name: Build DLL
         shell: pwsh
         run: |
