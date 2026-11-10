@@ -8,11 +8,15 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check SCS SDK headers
+      - name: Download official SCS Telemetry SDK 1.16
         shell: pwsh
         run: |
+          Invoke-WebRequest -Uri 'https://download.eurotrucksimulator2.com/scs_sdk_1_16.zip' -OutFile scs_sdk.zip
+          Expand-Archive -Path scs_sdk.zip -DestinationPath scs_sdk -Force
+          New-Item -ItemType Directory -Force sdk | Out-Null
+          Copy-Item -Path 'scs_sdk/include' -Destination 'sdk/include' -Recurse -Force
           if (!(Test-Path 'sdk/include/scssdk_telemetry.h')) {
-            throw 'SDK headers are not committed yet. Add the SCS Telemetry SDK 1.16 include folder at sdk/include.'
+            throw 'SCS SDK 1.16 headers were not found after extraction.'
           }
       - name: Build DLL
         shell: pwsh
