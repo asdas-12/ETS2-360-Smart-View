@@ -1,0 +1,26 @@
+name: Build Smart View telemetry DLL
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check SCS SDK headers
+        shell: pwsh
+        run: |
+          if (!(Test-Path 'sdk/include/scssdk_telemetry.h')) {
+            throw 'SDK headers are not committed yet. Add the SCS Telemetry SDK 1.16 include folder at sdk/include.'
+          }
+      - name: Build DLL
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build | Out-Null
+          msbuild src/smartview_telemetry.vcxproj /m /p:Configuration=Release /p:Platform=x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smartview-telemetry-win-x64
+          path: build/smartview_telemetry.dll
+          if-no-files-found: error
