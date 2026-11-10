@@ -14,6 +14,7 @@ static scs_log_t g_log = nullptr;
 static float g_speed = 0.0f, g_rpm = 0.0f;
 static scs_s32_t g_gear = 0;
 static bool g_paused = true;
+static bool g_left_blinker = false, g_right_blinker = false;
 static char g_path[MAX_PATH] = {};
 
 static bool make_path() {
@@ -30,8 +31,9 @@ static void write_data() {
   if (!g_path[0]) return;
   FILE* f = nullptr;
   if (fopen_s(&f, g_path, "wt") || !f) return;
-  fprintf(f, "{\n  \"speed_kmh\": %.2f,\n  \"rpm\": %.1f,\n  \"gear\": %d,\n  \"paused\": %s\n}\n",
-    double(g_speed) * 3.6, double(g_rpm), int(g_gear), g_paused ? "true" : "false");
+  fprintf(f, "{\n  \"speed_kmh\": %.2f,\n  \"rpm\": %.1f,\n  \"gear\": %d,\n  \"paused\": %s,\n  \"left_blinker\": %s,\n  \"right_blinker\": %s\n}\n",
+    double(g_speed) * 3.6, double(g_rpm), int(g_gear), g_paused ? "true" : "false",
+    g_left_blinker ? "true" : "false", g_right_blinker ? "true" : "false");
   fclose(f);
 }
 static SCSAPI_VOID on_float(const scs_string_t, const scs_u32_t, const scs_value_t* v, const scs_context_t c) {
@@ -39,6 +41,9 @@ static SCSAPI_VOID on_float(const scs_string_t, const scs_u32_t, const scs_value
 }
 static SCSAPI_VOID on_s32(const scs_string_t, const scs_u32_t, const scs_value_t* v, const scs_context_t c) {
   if (v && v->type == SCS_VALUE_TYPE_s32) *static_cast<scs_s32_t*>(c) = v->value_s32.value;
+}
+static SCSAPI_VOID on_bool(const scs_string_t, const scs_u32_t, const scs_value_t* v, const scs_context_t c) {
+  if (v && v->type == SCS_VALUE_TYPE_bool) *static_cast<bool*>(c) = (v->value_bool.value != 0);
 }
 static SCSAPI_VOID on_frame(const scs_event_t, const void*, const scs_context_t) { if (!g_paused) write_data(); }
 static SCSAPI_VOID on_pause(const scs_event_t e, const void*, const scs_context_t) {
@@ -52,14 +57,16 @@ SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version, const scs_telemetry_in
   if (strcmp(p->common.game_id, SCS_GAME_ID_EUT2) != 0 && g_log)
     g_log(SCS_LOG_TYPE_warning, "360 Smart View: intended for ETS2.");
   if (!make_path()) return SCS_RESULT_generic_error;
-  g_speed = g_rpm = 0.0f; g_gear = 0; g_paused = true;
+  g_speed = g_rpm = 0.0f; g_gear = 0; g_paused = true; g_left_blinker = g_right_blinker = false;
   if (p->register_for_event(SCS_TELEMETRY_EVENT_frame_end, on_frame, nullptr) != SCS_RESULT_ok ||
       p->register_for_event(SCS_TELEMETRY_EVENT_paused, on_pause, nullptr) != SCS_RESULT_ok ||
       p->register_for_event(SCS_TELEMETRY_EVENT_started, on_pause, nullptr) != SCS_RESULT_ok)
     return SCS_RESULT_generic_error;
   if (p->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_speed, SCS_U32_NIL, SCS_VALUE_TYPE_float, SCS_TELEMETRY_CHANNEL_FLAG_each_frame, on_float, &g_speed) != SCS_RESULT_ok ||
       p->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_engine_rpm, SCS_U32_NIL, SCS_VALUE_TYPE_float, SCS_TELEMETRY_CHANNEL_FLAG_each_frame, on_float, &g_rpm) != SCS_RESULT_ok ||
-      p->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_engine_gear, SCS_U32_NIL, SCS_VALUE_TYPE_s32, SCS_TELEMETRY_CHANNEL_FLAG_each_frame, on_s32, &g_gear) != SCS_RESULT_ok)
+      p->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_engine_gear, SCS_U32_NIL, SCS_VALUE_TYPE_s32, SCS_TELEMETRY_CHANNEL_FLAG_each_frame, on_s32, &g_gear) != SCS_RESULT_ok ||
+      p->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_lblinker, SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_each_frame, on_bool, &g_left_blinker) != SCS_RESULT_ok ||
+      p->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_rblinker, SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_each_frame, on_bool, &g_right_blinker) != SCS_RESULT_ok)
     return SCS_RESULT_generic_error;
   if (g_log) g_log(SCS_LOG_TYPE_message, "360 Smart View telemetry bridge initialized.");
   write_data();
